@@ -95,16 +95,25 @@ df <- tibble(
 # --- 0.2 Regression and check SDO ---
 reg_bd <- feols(y ~ vents, data = df, vcov = "HC1")
 etable(reg_bd)
-df |> distinct(sdo)
+df |> distinct(sdo) |> pull() |> round(digits = 4)
 
 # Count the biases:
-ate_val <- df |> distinct(ate) |> pull(ate)
-att_val <- df |> distinct(att) |> pull(att)
-atu_val <- df |> distinct(atu) |> pull(atu)
-sb_val  <- df |> distinct(selection_bias) |> pull(selection_bias)
-pi_val  <- df |> distinct(pi) |> pull(pi)
+ate_val <- df |> distinct(ate) |> pull() |> round(digits = 4)
+att_val <- df |> distinct(att) |> pull() |> round(digits = 4)
+atu_val <- df |> distinct(atu) |> pull() |> round(digits = 4)
+sb_val <- df |> distinct(selection_bias) |> pull() |> round(digits = 4)
+pi_val <- df |> distinct(pi) |> pull() |> round(digits = 4)
+vents <- reg_bd$coefficients["vents"] |> round(digits = 4)
 
-sdo_val <- ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)
+sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |> round(digits = 4)
+
+# Comments: 
+# In the perfect doctor example we have that the ate = 0.5853, att = 4.7225, atu = -4.282 and pi = 0.54.
+# We note that selection_bias = -4.4968, i.e., negative selection appears, as is casual in this setup due to
+# non-randomization. 
+
+# The Simple difference in mean outcomes = 0.2261. Note that this is very close to the coef on vents.
+# However, this is not a causal parameter in this case - since the SDO is drenched in bias. 
 
 
 # ----------------------------------------------------------------
@@ -144,13 +153,19 @@ df <- tibble(
 # --- 1.1 Regression and check SDO ---
 reg_gd <- feols(y ~ vents, data = df, vcov = "HC1")
 etable(reg_gd)
-df |> distinct(sdo) |> pull()
 
 # Count the biases:
-ate_val <- df |> distinct(ate) |> pull(ate)
-att_val <- df |> distinct(att) |> pull(att)
-atu_val <- df |> distinct(atu) |> pull(atu)
-sb_val  <- df |> distinct(selection_bias) |> pull(selection_bias)
-pi_val  <- df |> distinct(pi) |> pull(pi)
+ate_val <- df |> distinct(ate) |> pull() |> round(digits = 4)
+att_val <- df |> distinct(att) |> pull() |> round(digits = 4)
+atu_val <- df |> distinct(atu) |> pull() |> round(digits = 4)
+sb_val <- df |> distinct(selection_bias) |> pull() |> round(digits = 4)
+pi_val <- df |> distinct(pi) |> pull() |> round(digits = 4)
+vents <- reg_gd$coefficients["vents"] |> round(digits = 4)
 
-sdo_val <- ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)
+sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |>
+  round(digits = 4)
+
+# Comments:
+# In the bad doctor example we have a completly differenct situation! Note that ate ≈ att ≈ atu ≈ sdo, while
+# the selection_bias = 0.0337 (small!). But perticularly, note that sdo = vents! In this case, we have that - due to
+# not perfect, but indicative randomization - sdo is a causal parameter which is also unbiased.
