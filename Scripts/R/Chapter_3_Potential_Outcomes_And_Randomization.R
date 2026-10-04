@@ -179,3 +179,8 @@ sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |>
 # are always unobservable, excepts for these kinds of fictional cases where we simulate and create the data.
 # In the real world we only have realized, or, actual outcomes and treatment status. We never observe potential
 # outcomes. 
+
+# In the bad doctor example above we basically reach a state of the world where treatment status is independent
+# of potential outcomes, which in fact is the CIA - Conditional Independence Assumption - which states that
+# treatment status, or assignment to treatment, is independent of potential outcomes, which then basically gives that
+# treatment status is "as good as random". 
