@@ -113,15 +113,16 @@ sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |> round(digi
 # non-randomization. 
 
 # The Simple difference in mean outcomes = 0.2261. Note that this is very close to the coef on vents.
-# However, this is not a causal parameter in this case - since the SDO is drenched in bias. 
+# However, this is not a causal parameter in this case - since the SDO is drenched in bias, particularly
+# a selection bias that stems from what Cunningham (2026) refers to as "sorting on treatment gains".
 
 
 # ----------------------------------------------------------------
 
 
-# ---- good_doctor.do replication ---- #
+# ---- bad_doctor.do replication ---- #
 # Author: Adam Malmén
-# Description: simulation of a perfect doctor assigning the treatment
+# Description: simulation of a bad doctor assigning the treatment
 # Updated: 2026-10-03
 # ------------------------------------ #
 
@@ -168,4 +169,13 @@ sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |>
 # Comments:
 # In the bad doctor example we have a completly differenct situation! Note that ate ≈ att ≈ atu ≈ sdo, while
 # the selection_bias = 0.0337 (small!). But perticularly, note that sdo = vents! In this case, we have that - due to
-# not perfect, but indicative randomization - sdo is a causal parameter which is also unbiased.
+# not perfect, but indicative randomization - sdo is a causal parameter which is also unbiased. Since treatment
+# status is basically de-coupled from treatment gains, we can interpret treatment status as randomized, even tough
+# there is some sorting into treatment based on the time of the visit. But the important thing is that treatment 
+# status is independent of potential outcomes!
+
+
+# One important thing to note though is that in the real world we never observe potential outcomes! These
+# are always unobservable, excepts for these kinds of fictional cases where we simulate and create the data.
+# In the real world we only have realized, or, actual outcomes and treatment status. We never observe potential
+# outcomes. 
