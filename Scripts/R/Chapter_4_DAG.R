@@ -124,6 +124,12 @@ res <- imap(datasets, \(df, df_name) {
     labs(title = df_name) +
     theme_classic()
   print(p)
+  ggsave(
+    plot = p,
+    filename = glue::glue("Plots/Chapter_4_{df_name}.pdf"),
+    device = pdf,
+    create.dir = TRUE
+  )
 
   list(fits = fits, plot = p)
 })
