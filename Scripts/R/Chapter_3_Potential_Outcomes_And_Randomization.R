@@ -1,4 +1,16 @@
 
+# =========================================================== #
+# File:   Chapter_3_Potential_Outcomes_And_Randomization.R 
+# Author: Adam Malmén
+# Date:   2026-10-31
+#
+# Info:
+# This script is a replication of the .py scritp in the folder
+# It produces the code to replicate (to some degree) the results
+# in Cunningham (2026).
+#
+# =========================================================== #
+
 # --- Dependencies setup: ----
 
 dependencies <- function() {
@@ -75,7 +87,7 @@ dependencies <- function() {
 }
 dependencies()
 
-# --- Dependencies setup: ----
+
 
 # ---- good_doctor.do replication ---- #
 # Author: Adam Malmén

@@ -5,6 +5,18 @@ import numpy as np
 import statsmodels.formula.api as smf
 import pyfixest as pf
 
+# =========================================================== #
+# File:   Chapter_3_Potential_Outcomes_And_Randomization.py 
+# Author: Adam Malmén
+# Date:   2026-10-31
+#
+# Info:
+# This script is a replication of the .R scritp in the folder
+# It produces the code to replicate (to some degree) the results
+# in Cunningham (2026).
+#
+# =========================================================== #
+
 
 # ---- good_doctor.do replication ---- #
 # Author: Adam Malmén
