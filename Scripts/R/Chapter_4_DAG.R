@@ -108,7 +108,7 @@ res <- imap(datasets, \(df, df_name) {
   fits <- imap(models, \(f, model) {
     cli::cli_h2("{model}")
     fit <- fixest::feols(f, data = df)
-    print(fit)
+    print(fixest::etable(fit, se.below = TRUE, ci = 0.95))
     fit
     cli::cli_h3("\n Plot --- Data: {df_name} \n")
   })
@@ -123,6 +123,6 @@ res <- imap(datasets, \(df, df_name) {
   list(fits = fits, plot = p)
 })
 
-  
-  
+
+?fixest::etable
 
