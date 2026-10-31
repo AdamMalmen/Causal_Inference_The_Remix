@@ -1,6 +1,5 @@
-
 # =========================================================== #
-# File:   Chapter_4_DAG.R 
+# File:   Chapter_4_DAG.R
 # Author: Adam Malmén
 # Date:   2026-10-31
 #
@@ -13,45 +12,52 @@
 
 # ---- 0.0 Setup: ----
 dependencies <- function() {
-
   # Libs:
   libs <- c("tidyverse", "fixest", "cli", "rlang", "haven")
 
   # Checks and balances:
-  pac_check   <- FALSE
+  pac_check <- FALSE
   pac_install <- FALSE
-  libs_load   <- FALSE
+  libs_load <- FALSE
 
   # Progress bar:
-  pb_id <- cli::cli_progress_bar(name = "Dependencies", total = 2, clear = FALSE)
+  pb_id <- cli::cli_progress_bar(
+    name = "Dependencies",
+    total = 2,
+    clear = FALSE
+  )
 
   # Messages:
   cli::cli_h1("Dependencies:")
-  cli::cli_alert_info("{.pkg dependencies()} installs and loads packages that this program is dependent upon")
+  cli::cli_alert_info(
+    "{.pkg dependencies()} installs and loads packages that this program is dependent upon"
+  )
 
   # Check for pacman and install if not installed:
   if (!pac_check) {
     if (!require("pacman", quietly = TRUE)) {
-      ans_1 <- utils::menu(title = "Pacman not installed. Install?",
-                           choices = c("Yes", "No"))
+      ans_1 <- utils::menu(
+        title = "Pacman not installed. Install?",
+        choices = c("Yes", "No")
+      )
       if (ans_1 == 1) {
         install.packages("pacman", quiet = TRUE)
-        pac_check   <- TRUE
+        pac_check <- TRUE
         pac_install <- TRUE
         cli::cli_alert_success("{.pkg pacman} installed.")
       } else {
         cli::cli_abort("Aborted. --- {.pkg pacman} must be installed.")
       }
     } else {
-        pac_check   <- TRUE
-        pac_install <- TRUE
-        cli::cli_alert_success("{.pkg pacman} already installed.")
-      }
+      pac_check <- TRUE
+      pac_install <- TRUE
+      cli::cli_alert_success("{.pkg pacman} already installed.")
+    }
   }
 
   if (pac_check && pac_install && !libs_load) {
-  Sys.sleep(1)
-  cli::cli_progress_update(id = pb_id, set = 1, status = "pacman installed")
+    Sys.sleep(1)
+    cli::cli_progress_update(id = pb_id, set = 1, status = "pacman installed")
   }
 
   # Load packages:
@@ -70,16 +76,15 @@ dependencies <- function() {
   }
 
   if (pac_check && pac_install && libs_load) {
-  Sys.sleep(1)
-  cli::cli_progress_update(id = pb_id, set = 2, status = "packages loaded")
+    Sys.sleep(1)
+    cli::cli_progress_update(id = pb_id, set = 2, status = "packages loaded")
   }
 
-    # End:
+  # End:
   cli::cli_rule()
   cli::cli_h1("Ready for analysis")
   cli::cli_progress_done(id = pb_id)
-
-  }
+}
 dependencies()
 
 
@@ -88,9 +93,9 @@ set.seed(3444)
 star <- tibble(
   talent = rnorm(2500),
   beauty = rnorm(2500),
-  score  = talent + beauty,
-  c85    = quantile(score, 0.85),
-  star   = if_else(score >= c85, 1, 0)
+  score = talent + beauty,
+  c85 = quantile(score, 0.85),
+  star = if_else(score >= c85, 1, 0)
 )
 
 # Iterate:
@@ -104,7 +109,7 @@ models <- map(rhs, \(x) reformulate(x, response = "beauty"))
 
 res <- imap(datasets, \(df, df_name) {
   cli::cli_h1("{df_name}")
-  
+
   fits <- imap(models, \(f, model) {
     cli::cli_h2("{model}")
     fit <- fixest::feols(f, data = df)
@@ -112,17 +117,13 @@ res <- imap(datasets, \(df, df_name) {
     fit
     cli::cli_h3("\n Plot --- Data: {df_name} \n")
   })
-  
+
   p <- ggplot(df, aes(x = talent, y = beauty)) +
     geom_point(size = 0.5) +
     geom_smooth(method = "lm", se = FALSE, color = "grey") +
     labs(title = df_name) +
     theme_classic()
   print(p)
-  
+
   list(fits = fits, plot = p)
 })
-
-
-?fixest::etable
-
