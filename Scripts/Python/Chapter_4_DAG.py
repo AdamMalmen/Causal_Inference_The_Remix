@@ -1,21 +1,17 @@
+"""Chapter_4_DAG.py
+
+Replication of the .R script in the folder. Reproduces (to some degree)
+the results in Cunningham (2026).
+
+Author: Adam Malmén
+Date: 2026-10-31
+"""
+
 import numpy as np
 import pandas as pd
 import plotnine as pn
 import polars as pl
 import pyfixest as pf
-
-# =========================================================== #
-# File:   Chapter_4_DAG.py
-# Author: Adam Malmén
-# Date:   2026-10-31
-#
-# Info:
-# This script is a replication of the .R scritp in the folder
-# It produces the code to replicate (to some degree) the results
-# in Cunningham (2026).
-#
-# =========================================================== #
-
 
 # ----- 1.1 Collider bias ----
 rng = np.random.default_rng(3444)
