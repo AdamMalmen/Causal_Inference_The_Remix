@@ -87,6 +87,7 @@ dependencies <- function() {
 }
 dependencies()
 
+# --------------------------------------- #
 
 # ---- 1.1 Colider bias: ----
 set.seed(3444)
@@ -133,3 +134,33 @@ res <- imap(datasets, \(df, df_name) {
 
   list(fits = fits, plot = p)
 })
+
+# --------------------------------------- #
+
+# ---- 1.2: Discrimination & Colider Bias ----
+
+# DGP
+set.seed(123)
+n <- 10000
+df <- tibble(
+  female = if_else(rnorm(n) >= 0.5, 1, 0),
+  ability = rnorm(n),
+  discrimination = female,
+  occupation = 1 + 2 * ability + 0 * female + (-2) * discrimination + rnorm(n),
+  wage = 1 - discrimination + occupation + 2 * ability + rnorm(n)
+)
+
+# Run regressions:
+rhs <- list(
+  Unconditional_Biased = "female",
+  Conditional_Biased = "female + occupation",
+  Conditional_Unbiased = "female + occupation + ability"
+)
+models <- map(rhs, \(f) reformulate(f, response = "wage"))
+results <- imap(models, \(m, model) {
+  r <- fixest::feols(m, data = df)
+  cli::cli_h1("{model}")
+  fixest::etable(r, se.below = TRUE) |> print()
+  return(r)
+})
+results
