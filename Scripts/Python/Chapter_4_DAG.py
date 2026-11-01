@@ -17,7 +17,7 @@ import pyfixest as pf
 # =========================================================== #
 
 
-# ---- 1.1 Collider bias ----
+# ----- 1.1 Collider bias ----
 rng = np.random.default_rng(3444)
 n = 2500
 
@@ -66,7 +66,7 @@ for df_name, df_pl in datasets.items():
 
 # ---------------------------------------------- #
 
-# ---- 1.2: Discrimination & Colider Bias ----
+# ----- 1.2: Discrimination & Colider Bias ----
 rng = np.random.default_rng(123)
 obs = 10000
 
