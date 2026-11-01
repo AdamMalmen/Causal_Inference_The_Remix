@@ -1,6 +1,5 @@
-
 # =========================================================== #
-# File:   Chapter_3_Potential_Outcomes_And_Randomization.R 
+# File:   Chapter_3_Potential_Outcomes_And_Randomization.R
 # Author: Adam Malmén
 # Date:   2026-10-31
 #
@@ -88,13 +87,11 @@ dependencies <- function() {
 dependencies()
 
 
-
 # ---- good_doctor.do replication ---- #
 # Author: Adam Malmén
 # Description: simulation of a perfect doctor assigning the treatment
 # Updated: 2026-10-03
 # ------------------------------------ #
-
 
 # --- 0.1 Data frame ---
 
@@ -104,15 +101,15 @@ df <- tibble(
   person = seq_len(100000),
   y_0 = rnorm(100000, mean = 9.4, sd = 4),
   y_1 = rnorm(100000, mean = 10, sd = 4)
-) |> 
+) |>
   mutate(
     y_0 = if_else(y_0 < 0, 0, y_0),
     y_1 = if_else(y_1 < 0, 0, y_1),
-    delta = y_1 - y_0,                                      # beräknas EFTER trunkering
+    delta = y_1 - y_0, # beräknas EFTER trunkering
     vents = if_else(delta > 0, 1, 0),
     ate = mean(delta),
-    att = mean(if_else(vents == 1, delta, NA_real_), na.rm = TRUE),   # filtrerat medelvärde
-    atu = mean(if_else(vents == 0, delta, NA_real_), na.rm = TRUE),   # filtrerat medelvärde
+    att = mean(if_else(vents == 1, delta, NA_real_), na.rm = TRUE), # filtrerat medelvärde
+    atu = mean(if_else(vents == 0, delta, NA_real_), na.rm = TRUE), # filtrerat medelvärde
     y = vents * y_1 + (1 - vents) * y_0,
     ey_01 = mean(if_else(vents == 1, y_0, NA_real_), na.rm = TRUE),
     ey_00 = mean(if_else(vents == 0, y_0, NA_real_), na.rm = TRUE),
@@ -134,20 +131,19 @@ sb_val <- df |> distinct(selection_bias) |> pull() |> round(digits = 4)
 pi_val <- df |> distinct(pi) |> pull() |> round(digits = 4)
 vents <- reg_bd$coefficients["vents"] |> round(digits = 4)
 
-sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |> round(digits = 4)
+sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |>
+  round(digits = 4)
 
-# Comments: 
+# Comments:
 # In the perfect doctor example we have that the ate = 0.5853, att = 4.7225, atu = -4.282 and pi = 0.54.
 # We note that selection_bias = -4.4968, i.e., negative selection appears, as is casual in this setup due to
-# non-randomization. 
+# non-randomization.
 
 # The Simple difference in mean outcomes = 0.2261. Note that this is very close to the coef on vents.
 # However, this is not a causal parameter in this case - since the SDO is drenched in bias, particularly
 # a selection bias that stems from what Cunningham (2026) refers to as "sorting on treatment gains".
 
-
 # ----------------------------------------------------------------
-
 
 # ---- bad_doctor.do replication ---- #
 # Author: Adam Malmén
@@ -160,18 +156,18 @@ sdo_val <- (ate_val + sb_val + (1 - pi_val) * (att_val - atu_val)) |> round(digi
 set.seed(20200403)
 
 df <- tibble(
- person = seq(1:100000),
- y_0 = rnorm(seq_along(person), 9.4, 4),
- y_1 = rnorm(seq_along(person), 10, 4)
-) |> 
+  person = seq(1:100000),
+  y_0 = rnorm(seq_along(person), 9.4, 4),
+  y_1 = rnorm(seq_along(person), 10, 4)
+) |>
   mutate(
     y_0 = if_else(y_0 < 0, 0, y_0),
     y_1 = if_else(y_1 < 0, 0, y_1),
-    delta = y_1 - y_0,                                      # beräknas EFTER trunkering
+    delta = y_1 - y_0, # beräknas EFTER trunkering
     vents = if_else(person <= 50000, 1, 0),
     ate = mean(delta),
-    att = mean(if_else(vents == 1, delta, NA_real_), na.rm = TRUE),   # filtrerat medelvärde
-    atu = mean(if_else(vents == 0, delta, NA_real_), na.rm = TRUE),   # filtrerat medelvärde
+    att = mean(if_else(vents == 1, delta, NA_real_), na.rm = TRUE), # filtrerat medelvärde
+    atu = mean(if_else(vents == 0, delta, NA_real_), na.rm = TRUE), # filtrerat medelvärde
     y = vents * y_1 + (1 - vents) * y_0,
     ey_01 = mean(if_else(vents == 1, y_0, NA_real_), na.rm = TRUE),
     ey_00 = mean(if_else(vents == 0, y_0, NA_real_), na.rm = TRUE),
@@ -236,26 +232,35 @@ dat_hunan <- giffen_dat |>
 # Use fixest to replicate statas areg command:
 
 # Formula:
-fml <- pct_ch_hh_rice ~ pct_ch_sub_rice_arc + pct_ch_hh_pay +
-  pct_ch_hh_nonwage + pct_ch_hh_people | county_time
+fml <- pct_ch_hh_rice ~ pct_ch_sub_rice_arc +
+  pct_ch_hh_pay +
+  pct_ch_hh_nonwage +
+  pct_ch_hh_people |
+  county_time
 
 # Subsets: Check conditions
 samples <- list(
-  "(1): Full sample"           = expr(TRUE),
-  "(2): Calorie share <= 0.8"  = expr(hh_staple_calorie_share_1 <= 0.8),
-  "(3): Calorie share > 0.8"   = expr(hh_staple_calorie_share_1 > 0.8),
-  "(4): Calorie share 0.6-0.8" = expr(hh_staple_calorie_share_1 >= 0.6 &
-                                      hh_staple_calorie_share_1 <= 0.8)
+  "(1): Full sample" = expr(TRUE),
+  "(2): Calorie share <= 0.8" = expr(hh_staple_calorie_share_1 <= 0.8),
+  "(3): Calorie share > 0.8" = expr(hh_staple_calorie_share_1 > 0.8),
+  "(4): Calorie share 0.6-0.8" = expr(
+    hh_staple_calorie_share_1 >= 0.6 &
+      hh_staple_calorie_share_1 <= 0.8
+  )
 )
 
 # Iterate:
-models <- map(samples, \(cond) {
-  feols(
-    fml,
-    data = dat_hunan |> filter(!!cond),
-    vcov = ~hhid,
-    ssc = ssc(adj = TRUE, fixef.K = "full", cluster.adj = TRUE)
-  )
-}, .progress = TRUE)
+models <- map(
+  samples,
+  \(cond) {
+    feols(
+      fml,
+      data = dat_hunan |> filter(!!cond),
+      vcov = ~hhid,
+      ssc = ssc(adj = TRUE, fixef.K = "full", cluster.adj = TRUE)
+    )
+  },
+  .progress = TRUE
+)
 
-etable(models, se.below = TRUE) 
+etable(models, se.below = TRUE)
