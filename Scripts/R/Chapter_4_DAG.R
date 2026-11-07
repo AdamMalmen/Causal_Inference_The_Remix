@@ -115,8 +115,8 @@ res <- imap(datasets, \(df, df_name) {
     cli::cli_h2("{model}")
     fit <- fixest::feols(f, data = df)
     print(fixest::etable(fit, se.below = TRUE, ci = 0.95))
-    fit
     cli::cli_text("\n")
+    fit
   })
 
   p <- ggplot(df, aes(x = talent, y = beauty)) +
