@@ -1,11 +1,93 @@
-# Specific files:
+# ---------- macOS ----------
 .DS_Store
+**/.DS_Store
+._*
 
-# Data:
+# ---------- Data (aldrig till GitHub) ----------
+Data/
+data/
 *.xlsx
+*.xls
 *.csv
+*.tsv
 *.dta
+*.sav
+*.zsav
+*.por
+*.sas7bdat
+*.xpt
 *.rds
 *.Rds
-*.sav
-Data/
+*.rda
+*.RData
+*.rdata
+*.parquet
+*.feather
+*.arrow
+*.pkl
+*.pickle
+*.json
+*.sqlite
+*.db
+*.zip
+*.gz
+*.7z
+
+# ---------- Hemligheter ----------
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.token
+secrets*
+credentials*
+.Renviron
+.Rprofile
+.httr-oauth
+
+# ---------- R ----------
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+renv/library/
+renv/staging/
+*.Rproj
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Quarto / rendering ----------
+.quarto/
+/.luarc.json
+*_cache/
+*_files/
+*.knit.md
+*.utf8.md
+
+# ---------- Stata / SPSS ----------
+*.gph
+*.smcl
+*.log
+*.spv
+*.spo
+
+# ---------- Editorer / verktyg ----------
+.vscode/
+.idea/
+*.swp
+*~
+CLAUDE/
+.claude/
+
+# ---------- HTML ----------
+*.html
