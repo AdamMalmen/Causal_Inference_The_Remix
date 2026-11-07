@@ -1,0 +1,11 @@
+# Specific files:
+.DS_Store
+
+# Data:
+*.xlsx
+*.csv
+*.dta
+*.rds
+*.Rds
+*.sav
+Data/
