@@ -116,7 +116,7 @@ res <- imap(datasets, \(df, df_name) {
     fit <- fixest::feols(f, data = df)
     print(fixest::etable(fit, se.below = TRUE, ci = 0.95))
     fit
-    cli::cli_h3("\n Plot --- Data: {df_name} \n")
+    cli::cli_text("\n")
   })
 
   p <- ggplot(df, aes(x = talent, y = beauty)) +
@@ -124,6 +124,7 @@ res <- imap(datasets, \(df, df_name) {
     geom_smooth(method = "lm", se = FALSE, color = "grey") +
     labs(title = df_name) +
     theme_classic()
+  cli::cli_h3("\n Plot --- Data: {df_name} \n")
   print(p)
   ggsave(
     plot = p,
