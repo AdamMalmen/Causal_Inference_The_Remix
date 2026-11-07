@@ -1,0 +1,30 @@
+---
+title: "Data_Wrangling_Using_Tidyverse_and_Polars"
+format: html
+---
+
+
+## Intro
+
+This html show how to wrangle data using both R's `tidyverse` family of packages, and Pythons `polars` library.
+
+We start simple from the ground up and show how to do the basics, like `dplyr::select()` and `polars_df.select()`.
+
+Note that in R we use the native pipe `|>` while in python we using 'chaining' `.`.
+
+
+## Loading libraries/packages:
+
+**R:**
+```{r}
+library(tidyverse)
+```
+
+**Python:** 
+```{python}
+import polars as pl
+import pandas as pd # for data
+```
+
+----
+
