@@ -1,12 +1,29 @@
 ---
-title: "Data_Wrangling_Using_Tidyverse_and_Polars"
-format: html
+title: "Data Wrangling Using Tidyverse and Polars"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
 ---
-
 
 ## Intro
 
-This html show how to wrangle data using both R's `tidyverse` family of packages, and Pythons `polars` library.
+This html show how to wrangle data using both R's `tidyverse` family of packages, and Pythons `polars` library. This sort of bridges the book `R for data science` and the `polars cheet-sheet` by Posit.
 
 We start simple from the ground up and show how to do the basics, like `dplyr::select()` and `polars_df.select()`.
 
@@ -15,12 +32,12 @@ Note that in R we use the native pipe `|>` while in python we using 'chaining' `
 
 ## Loading libraries/packages:
 
-**R:**
+### R:### 
 ```{r}
 library(tidyverse)
 ```
 
-**Python:** 
+### Python:###  
 ```{python}
 import polars as pl
 import pandas as pd # for data
@@ -41,7 +58,7 @@ dat <- palmerpenguins::penguins
 url = "https://raw.githubusercontent.com/allisonhorst/palmerpenguins/main/inst/extdata/penguins.csv"
 dat_pl = pl.read_csv(url, null_values="NA")
 
-# 2. Using the palmerpenguins package, set it to pandas df, the check such that NnN becomes NA
+# 2. Using the palmerpenguins package, set it to pandas df, then check such that NnN becomes NA
 # from palmerpenguins import load_penguins
 # dat_pd = load_penguins()
 # dat_pd = dat.astype(object).where(dat.notna(), None)  # NaN blir None (saknat värde)
@@ -49,11 +66,14 @@ dat_pl = pl.read_csv(url, null_values="NA")
 ```
 
 It's very important to note that:
+
 - we have two types of data frames in our python environment, one `polars` df and one `pandas` df.
 
-### Tidyverse logic:
+----
 
-**`dplyr::select()`**
+## `dplyr` logic:
+
+### `dplyr::select()`
 ```{r}
 dat |> select(bill_depth_mm)
 dat |> select(bill_depth_mm, bill_length_mm)
@@ -66,6 +86,7 @@ dat |> select(where(is.character)) # Wont return any cols since character cols a
 dat |> select(where(is.factor))
 ```
 
+### `polars.select()`
 ```{python}
 dat_pl.select(pl.col("bill_depth_mm"))
 dat_pl.select("bill_depth_mm")
@@ -81,7 +102,7 @@ dat_pl.select(cs.numeric())
 dat_pl.select(cs.string())
 ```
 
-**`dplyr::filter()`**
+### `dplyr::filter()`
 ```{r}
 dat |> filter(bill_length_mm >= 40)
 dat |> filter(bill_length_mm >= 40, bill_depth_mm >= 20)
@@ -97,6 +118,7 @@ dat |> filter(when_all(species == "Adelie", bill_length_mm <= 35))
 
 ```
 
+### `polars.filter()`
 ```{python}
 dat_pl.filter(pl.col("bill_length_mm") >= 40)
 dat_pl.filter(pl.col("bill_length_mm") >= 40, pl.col("bill_depth_mm") >= 20)
@@ -125,7 +147,7 @@ dat_pl.filter(
 
 ```
 
-**`dplyr::filter_out()`**
+### `dplyr::filter_out()`
 
 - `dplyr::filter_out()` is a new edition to the `dplyr` package. It works in the opposite of `dplyr::filter()`, i.e., it removes the rows instead of keeping them. Note however that it is standard in `dplyr::filter_out()` that the function keeps `NA`'s
 
@@ -140,6 +162,7 @@ dat |> filter_out(bill_length_mm >= 45 | is.na(bill_length_mm))
 
 ```
 
+### `polars.remove()`
 Note that this behavior is equivalent in `polars.filter` and `polars.remove`:
 
 ```{python}
@@ -150,12 +173,13 @@ dat_pl.remove(pl.col("bill_length_mm") >= 45)
 dat_pl.remove((pl.col("bill_length_mm") >= 45) | (pl.col("bill_length_mm")).is_null())
 ```
 
-**`dplyr::mutate()`**
+### `dplyr::mutate()`
 
 ```{r}
 dat |> mutate(bill_length_pct = bill_length_mm / 100, .keep = "used")
 ```
 
+### `polars.with_columns()`
 ```{python}
 # Two ways: 1. using a bare col name
 dat_pl.with_columns(
@@ -198,7 +222,7 @@ dat_pl.with_columns(
 ```
 
 
-**`dplyr::arrange()`**
+### `dplyr::arrange()`
 
 ```{r}
 dat |> 
@@ -210,6 +234,8 @@ dat |>
     arrange(desc(bill_length_mm))
 
 ```
+
+### `polars.sort()`
 
 ```{python}
 dat_pl.select(
@@ -228,7 +254,94 @@ dat_pl.select(
 
 ```
 
-- Note: in R, `dplyr::arrange()` always places `NA`'s at the bottom, while `polars.sort()` places `NA`'s at the top
+- Note: in R, `dplyr::arrange()` always places `NA`'s at the bottom, while `polars.sort()` places `NA`'s at the top.
 
+### `dplyr::distinct()`
+
+```{r}
+dat |> distinct(species)
+dat |> distinct(species, island)
+```
+
+### `polars.unique()`
+
+```{python}
+dat_pl.unique(
+    pl.col("species"), maintain_order = True
+).select(
+    pl.col("species")
+)
+
+dat_pl.unique(
+    subset = "species", maintain_order = True
+).select(
+    pl.col("species")
+)
+
+dat_pl.unique(
+    ["species", "island"], maintain_order = True
+).select(
+    pl.col("species"), pl.col("island")
+)
+```
+
+- Note one discrepancy: In `dplyr::distinct()` we get a tibble containing the columns we assign in our `distinct` call, one row for each unique value. When we call `polars.unique` we get all columns for each unique value on the column we assign. One way to replicate that in `dplyr::distinct()` is to use the `.keep_all = TRUE` option:
+
+```{r}
+dat |> distinct(species, .keep_all = TRUE)
+```
+
+```{python}
+dat_pl.unique(subset = "species", maintain_order = True)
+```
+
+### `dplyr::n_distinct()`
+
+- In `dplyr`, `n_distinct()` is sort of a special function which counts the number of distinct values of a column, and is used in a mutating or summarising pipe:
+
+```{r}
+dat |> 
+    summarise(number_distinct_species = n_distinct(species))
+```
+
+### `polars.n_unique()`
+
+```{python}
+dat_pl.select(
+    number_distinct_species=pl.col("species").n_unique()
+)
+```
+
+These might be looked at later on!
+
+### `dplyr::group_by()`
+
+```{r}
+dat |> 
+    group_by(species) |> 
+    summarise(
+        mean_bill_length_mm = mean(bill_length_mm, na.rm = TRUE)
+    )
+```
+
+- Note that a more modern way in `dplyr` is to use the `.by = ` argument:
+
+```{r}
+dat |> 
+    summarise(
+        mean_bill_length_mm = mean(bill_length_mm, na.rm = TRUE),
+        .by = species
+    )
+```
+
+### `polars.group_by()`
+
+```{python}
+dat_pl.group_by(pl.col("species")).agg(
+    mean_bill_length_mm = pl.col("bill_length_mm").mean()
+).sort(pl.col("species"))
+```
+
+---
 
 Alright, these are the very basics to understand pythons `polars` package, which is fantastic and in my opinion more intuitive than `pandas`.
