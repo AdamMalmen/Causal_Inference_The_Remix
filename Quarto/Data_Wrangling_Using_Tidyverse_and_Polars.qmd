@@ -28,3 +28,125 @@ import pandas as pd # for data
 
 ----
 
+Alright let's get moving. We can use the `penguins` data set, which are available for both R and Python:
+
+```{r}
+dat <- palmerpenguins::penguins
+```
+
+```{python}
+# 2 ways:
+
+# 1. CSV via URL:
+url = "https://raw.githubusercontent.com/allisonhorst/palmerpenguins/main/inst/extdata/penguins.csv"
+dat_pl = pl.read_csv(url, null_values="NA")
+
+# 2. Using the palmerpenguins package, set it to pandas df, the check such that NnN becomes NA
+# from palmerpenguins import load_penguins
+# dat_pd = load_penguins()
+# dat_pd = dat.astype(object).where(dat.notna(), None)  # NaN blir None (saknat värde)
+# dat_pl = pl.DataFrame(dat.to_dict("list"))
+```
+
+It's very important to note that:
+- we have two types of data frames in our python environment, one `polars` df and one `pandas` df.
+
+### Tidyverse logic:
+
+**`dplyr::select()`**
+```{r}
+dat |> select(bill_depth_mm)
+dat |> select(bill_depth_mm, bill_length_mm)
+dat |> select(all_of(c("bill_depth_mm", "bill_length_mm")))
+dat |> select(any_of(c("bill_depth_mm", "bill_depth_AA")))
+dat |> select(starts_with("bill_"))
+
+dat |> select(where(is.numeric))
+dat |> select(where(is.character)) # Wont return any cols since character cols are factors in the penguins data set
+dat |> select(where(is.factor))
+```
+
+```{python}
+dat_pl.select(pl.col("bill_depth_mm"))
+dat_pl.select("bill_depth_mm")
+
+dat_pl.select(pl.col("bill_depth_mm"), pl.col("bill_length_mm"))
+dat_pl.select("bill_depth_mm", "bill_length_mm")
+
+# For starts_with equivalents we need:
+import polars.selectors as cs
+dat_pl.select(cs.starts_with("bill_"))
+
+dat_pl.select(cs.numeric())
+dat_pl.select(cs.string())
+```
+
+**`dplyr::filter()`**
+```{r}
+dat |> filter(bill_length_mm >= 40)
+dat |> filter(bill_length_mm >= 40, bill_depth_mm >= 20)
+dat |> filter(bill_length_mm >= 40 & bill_depth_mm >= 20)
+dat |> filter(bill_length_mm >= 40 | bill_depth_mm >= 20)
+
+dat |> filter(between(bill_length_mm, 45, 50), bill_depth_mm >= 20)
+
+dat |> filter(species %in% c("Adelie", "Gentoo"))
+
+dat |> filter(when_any(species == "Adelie", bill_length_mm <= 45))
+dat |> filter(when_all(species == "Adelie", bill_length_mm <= 35))
+
+```
+
+```{python}
+dat_pl.filter(pl.col("bill_length_mm") >= 40)
+dat_pl.filter(pl.col("bill_length_mm") >= 40, pl.col("bill_depth_mm") >= 20)
+dat_pl.filter(
+    (pl.col("bill_length_mm") >= 40) & (pl.col("bill_depth_mm") >= 20)
+)
+dat_pl.filter(
+    (pl.col("bill_length_mm") >= 40) | (pl.col("bill_depth_mm") >= 20)
+)
+
+dat_pl.filter(
+    (pl.col("bill_length_mm") >= 45),
+    (pl.col("bill_length_mm") <= 50),
+    (pl.col("bill_depth_mm") >= 20)
+)
+
+dat_pl.filter(
+    (pl.col("bill_length_mm").is_between(45, 50)),
+    (pl.col("bill_depth_mm") >= 20)
+)
+
+dat_pl.filter(
+    pl.col("species").is_in(["Adelie", "Gentoo"])
+)
+
+
+```
+
+**`dplyr::filter_out()`**
+
+- `dplyr::filter_out()` is a new edition to the `dplyr` package. It works in the opposite of `dplyr::filter()`, i.e., it removes the rows instead of keeping them. Note however that it is standard in `dplyr::filter_out()` that the function keeps `NA`'s
+
+```{r}
+# The standard predicate using dplyr::filter to filter out rows:
+dat |> filter(!bill_length_mm >= 45)
+
+# With dplyr::filter_out
+dat |> filter_out(bill_length_mm >= 45)
+
+dat |> filter_out(bill_length_mm >= 45 | is.na(bill_length_mm))
+
+```
+
+Note that this behavior is equivalent in `polars.filter` and `polars.remove`:
+
+```{python}
+dat_pl.filter(~(pl.col("bill_length_mm") >= 45))
+
+dat_pl.remove(pl.col("bill_length_mm") >= 45)
+
+dat_pl.remove((pl.col("bill_length_mm") >= 45) | (pl.col("bill_length_mm")).is_null())
+```
+
