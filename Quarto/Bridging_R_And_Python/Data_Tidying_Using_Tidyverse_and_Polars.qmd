@@ -1,0 +1,23 @@
+---
+title: "Data Tidying Using Tidyverse and Polars"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
