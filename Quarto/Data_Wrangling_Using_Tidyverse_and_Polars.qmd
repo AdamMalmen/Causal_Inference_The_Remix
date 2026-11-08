@@ -150,3 +150,85 @@ dat_pl.remove(pl.col("bill_length_mm") >= 45)
 dat_pl.remove((pl.col("bill_length_mm") >= 45) | (pl.col("bill_length_mm")).is_null())
 ```
 
+**`dplyr::mutate()`**
+
+```{r}
+dat |> mutate(bill_length_pct = bill_length_mm / 100, .keep = "used")
+```
+
+```{python}
+# Two ways: 1. using a bare col name
+dat_pl.with_columns(
+    bill_length_pct = pl.col("bill_length_mm") / 100
+    ).select(pl.col("bill_length_mm"), pl.col("bill_length_pct"))
+
+# 2. Using an alias: .alias()
+dat_pl.with_columns(
+    (pl.col("bill_length_mm") / 100).alias("bill_length_pct")
+).select(pl.col("bill_length_mm"), pl.col("bill_length_pct"))
+```
+
+One quite big difference between `dplyr::mutate()` and `polars.with_columns()` is that we can create a lot of columns in one `mutate()` call, while in `polars` we need to update with a new `with_columns()` call if we want to utilize generated columns. E.g.,
+
+```{r}
+dat |> mutate(
+    bill_length_pct = bill_length_mm / 100,
+    bill_length_pct_2 = bill_length_pct * 2,
+    .keep = "used"
+)
+```
+
+```{python}
+# This will fail, and we will get an answer that our with_columns call can't find the column bill_length_pct:
+
+# dat_pl.with_columns(
+#     bill_length_pct = pl.col("bill_length_mm") / 100,
+#     bill_length_pct_2 = pl.col("bill_length_pct_2") * 2
+# )
+
+# Instead we need to chain in another with_columns() call:
+dat_pl.with_columns(
+    bill_length_pct = pl.col("bill_length_mm") / 100
+).select(
+    pl.col("bill_length_mm"), 
+    pl.col("bill_length_pct")
+).with_columns(
+    bill_length_pct_2 = pl.col("bill_length_pct") * 2
+)
+```
+
+
+**`dplyr::arrange()`**
+
+```{r}
+dat |> 
+    select(species, bill_length_mm) |> 
+    arrange(bill_length_mm)
+
+dat |> 
+    select(species, bill_length_mm) |> 
+    arrange(desc(bill_length_mm))
+
+```
+
+```{python}
+dat_pl.select(
+    pl.col("species"),
+    pl.col("bill_length_mm")
+).sort(
+    pl.col("bill_length_mm")
+)
+
+dat_pl.select(
+    pl.col("species"),
+    pl.col("bill_length_mm")
+).sort(
+    pl.col("bill_length_mm"), descending = True
+)
+
+```
+
+- Note: in R, `dplyr::arrange()` always places `NA`'s at the bottom, while `polars.sort()` places `NA`'s at the top
+
+
+Alright, these are the very basics to understand pythons `polars` package, which is fantastic and in my opinion more intuitive than `pandas`.
