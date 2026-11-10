@@ -21,3 +21,95 @@ execute:
   message: false
 ---
 
+## Intro:
+
+- In this part we look at how we can bridge `tidyr` and `polars`, i.e., how to rearrange data into longer or wider formats.
+
+- Here we will specifically look at the `tidyr` package from the `tidyverse`. By now we can notice that `tidyverse` is a collection of key packages (9 core packages), while `polars` is one big package that does a lot of things.
+
+---
+
+## Packages and data
+
+- I will use the data that is available from R packages. These will be written to csv's and imported via `polars.read_csv()` into out python environment.
+
+```{r}
+library(tidyverse) # tidyr is a core package
+dat <- tidyr::billboard
+# if (!dir.exists("Data/R4DS")) dir.create("Data/R4DS")
+# readr::write_csv(dat, "Data/R4DS/billboard.csv")
+```
+
+```{python}
+import polars as pl
+import pandas as pd
+import polars.selectors as cs
+dat_pl = pl.read_csv("Data/R4DS/billboard.csv")
+```
+
+---
+
+### `tidyr::pivot_longer()`
+
+- Check the `billboards` data to get a grip:
+
+```{r}
+dat
+```
+
+```{python}
+dat_pl
+```
+
+Let's get this data into a tidy format: here we lengthen the data
+
+```{r}
+dat |> 
+  pivot_longer(
+    cols = !c(artist, track, date.entered),
+    names_to = "week",
+    values_to = "rank"
+  ) |> 
+  mutate(week = parse_number(week))
+```
+
+- The equivalent in `polars` is `polars.unpivot()`
+
+```{python}
+dat_pl.unpivot(
+  index = ["artist", "track", "date.entered"], # Must be used, otherwise polars drops them
+  variable_name = "week", 
+  value_name = "rank"
+).with_columns(
+  week = pl.col("week").str.extract(r"(\d+)").cast(pl.Int64),
+  rank = pl.col("rank").str.extract(r"(\d+)").cast(pl.Int64)
+)
+```
+
+Okey, so what happens here? Well both calls produce a longer data set. It takes the columns that ARE NOT those specified in each call, and puts them into the rows instead.
+
+- We can extend these calls, because we have a lot of `NA's` in the `tibble` and a lot of `null's` in the `polars` data frame:
+
+```{r}
+dat |> 
+  pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    values_to = "rank", 
+    values_drop_na = TRUE
+  ) |> 
+  mutate(week = readr::parse_number(week))
+
+```
+
+```{python}
+dat_pl.unpivot(
+    on = cs.starts_with("wk"),
+    index = ["artist", "track", "date.entered"],
+    variable_name = "week",
+    value_name = "rank",
+).with_columns(
+    week=pl.col("week").str.extract(r"(\d+)").cast(pl.Int64),
+    rank=pl.col("rank").str.extract(r"(\d+)").cast(pl.Int64),
+).drop_nulls("rank")
+```
