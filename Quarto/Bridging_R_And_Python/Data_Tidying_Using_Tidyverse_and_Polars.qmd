@@ -36,8 +36,13 @@ execute:
 ```{r}
 library(tidyverse) # tidyr is a core package
 dat <- tidyr::billboard
+who2 <- tidyr::who2
+household <- tidyr::household
 # if (!dir.exists("Data/R4DS")) dir.create("Data/R4DS")
 # readr::write_csv(dat, "Data/R4DS/billboard.csv")
+# readr::write_csv(who, "Data/R4DS/who.csv")
+# readr::write_csv(who2, "Data/R4DS/who2.csv")
+# readr::write_csv(household, "Data/R4DS/household.csv")
 ```
 
 ```{python}
@@ -45,6 +50,7 @@ import polars as pl
 import pandas as pd
 import polars.selectors as cs
 dat_pl = pl.read_csv("Data/R4DS/billboard.csv")
+who2_pl = pl.read_csv("Data/R4DS/who2.csv")
 ```
 
 ---
@@ -113,3 +119,50 @@ dat_pl.unpivot(
     rank=pl.col("rank").str.extract(r"(\d+)").cast(pl.Int64),
 ).drop_nulls("rank")
 ```
+
+
+- As R4DS also showcase, we might also have variables in the column names and that might be particularly tricky to solve:
+
+```{r}
+who2 |> 
+  pivot_longer(
+    cols = !c(country, year),
+    names_to = c("diagnosis", "gender", "age"),
+    names_sep = "_", 
+    values_to = "obs"
+  )
+
+# Droping NA's
+who2 |> 
+  pivot_longer(
+    cols = !(country:year),
+    names_to = c("diagnosis", "gender", "age"),
+    names_sep = "_",
+    values_to = "obs",
+    values_drop_na = TRUE
+  )
+```
+
+- In `polars` this is a lot messier!
+
+- What about both data and variable names in the column header?
+
+```{r}
+household |> 
+  pivot_longer(
+    cols = !(family),
+    names_to = c(".value", "child"),
+    names_sep = "_"
+  )
+
+# Drop NA's:
+household |> 
+  pivot_longer(
+    cols = !family,
+    names_to = c(".value", "child"),
+    names_sep = "_",
+    values_drop_na = TRUE
+  )
+```
+
+- In `tidyr`, the `.value` argument is very nice! It actually tells what values should be pivoted, and it creates it accordingly!

@@ -1,0 +1,50 @@
+---
+title: "Functions Using Tidyverse and Polars"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Intro:
+
+- In R functions are quite straightforward. Imagine we have a data frame with variable that we wish to perform some arrgregates on, and for simplicity let's use the `gss` data from `forcats`:
+
+```{r}
+gss <- forcats::gss_cat
+readr::write_csv(gss, "Data/R4DS/gss.csv")
+```
+
+- Imagine now we want to perform some operations on this data in order to generate an output file. For that, we need a `data frame function`, i.e., a function that takes a data frame as input and produces a data frame as output:
+
+```{r}
+prop_data <- function(df, var) {
+    
+    # Set label using rlang:
+    lbs <- rlang::as_label(enquo(var)) |> str_to_title() |> str_replace_all("_", " ")
+
+    # Data frame function
+    data <- df |> 
+        mutate({{ var }} := forcats::as_factor({{ var }})) |> 
+        count({{ var }}, .drop = FALSE) |> 
+        mutate(prop = (n / sum(n)) |> scales::percent(accuracy = 0.1))
+
+    # return data
+    data
+}
+```
