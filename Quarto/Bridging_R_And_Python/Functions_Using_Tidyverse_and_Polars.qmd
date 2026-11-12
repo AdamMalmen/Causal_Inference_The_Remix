@@ -26,8 +26,9 @@ execute:
 - In R functions are quite straightforward. Imagine we have a data frame with variable that we wish to perform some arrgregates on, and for simplicity let's use the `gss` data from `forcats`:
 
 ```{r}
+library(tidyverse)
 gss <- forcats::gss_cat
-readr::write_csv(gss, "Data/R4DS/gss.csv")
+# readr::write_csv(gss, "Data/R4DS/gss.csv")
 ```
 
 - Imagine now we want to perform some operations on this data in order to generate an output file. For that, we need a `data frame function`, i.e., a function that takes a data frame as input and produces a data frame as output:
@@ -43,14 +44,34 @@ prop_data <- function(df, var) {
   data <- df |>
     mutate({{ var }} := forcats::as_factor({{ var }})) |>
     count({{ var }}, .drop = FALSE) |>
-    mutate(prop = (n / sum(n)) |> scales::percent(accuracy = 0.1))
+    mutate(
+        prop = n / sum(n),
+        prop_pct = (n / sum(n)) |> scales::percent(accuracy = 0.1),
+        is_na = if_else({{ var }} %in% c("No answer"), "Yes", "No"),
+        n_valid = if_else(is_na == "Yes", NA_real_, n),
+        prop_valid = if_else(is_na == "Yes", NA_real_, n_valid / sum(n_valid, na.rm = TRUE)),
+        prop_valid_pct = if_else(is_na == "Yes", NA_real_, (n_valid / sum(n_valid, na.rm = TRUE))) |> scales::percent(accuracy = 0.1),
+        n_tot = sum(n),
+        n_tot_valid = sum(n_valid, na.rm = TRUE),
+        n_na = if_else(is_na == "Yes", n, NA_real_),
+        na_prop = if_else(is_na == "Yes", n_na / sum(n), NA_real_),
+        na_prop_pct = if_else(is_na == "Yes", n_na / sum(n), NA_real_) |> scales::percent(accuracy = 0.1))
 
   # Use cli to showcase:
   cli::cli_h1("data: {lbs}")
   print(data)
 
+  # Plot:
+  cli::cli_h1("Plot: {lbs}")
+  p <- data |> 
+    ggplot(aes(x = prop, y = {{ var }})) + 
+    geom_col()
+  print(p)
+
   # return data quietly:
-  invisible(list(data = data, label = lbs))
+  invisible(list(data = data, label = lbs, plot = p))
 }
 t <- gss |> prop_data(marital)
 ```
+
+- This setup above could be thought of as a 'God-function', 
