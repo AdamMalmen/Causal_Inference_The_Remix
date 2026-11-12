@@ -34,17 +34,23 @@ readr::write_csv(gss, "Data/R4DS/gss.csv")
 
 ```{r}
 prop_data <- function(df, var) {
-    
-    # Set label using rlang:
-    lbs <- rlang::as_label(enquo(var)) |> str_to_title() |> str_replace_all("_", " ")
+  # Set label using rlang:
+  lbs <- rlang::as_label(enquo(var)) |>
+    str_to_title() |>
+    str_replace_all("_", " ")
 
-    # Data frame function
-    data <- df |> 
-        mutate({{ var }} := forcats::as_factor({{ var }})) |> 
-        count({{ var }}, .drop = FALSE) |> 
-        mutate(prop = (n / sum(n)) |> scales::percent(accuracy = 0.1))
+  # Data frame function
+  data <- df |>
+    mutate({{ var }} := forcats::as_factor({{ var }})) |>
+    count({{ var }}, .drop = FALSE) |>
+    mutate(prop = (n / sum(n)) |> scales::percent(accuracy = 0.1))
 
-    # return data
-    data
+  # Use cli to showcase:
+  cli::cli_h1("data: {lbs}")
+  print(data)
+
+  # return data quietly:
+  invisible(list(data = data, label = lbs))
 }
+t <- gss |> prop_data(marital)
 ```
