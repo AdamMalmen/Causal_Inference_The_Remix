@@ -45,17 +45,32 @@ prop_data <- function(df, var) {
     mutate({{ var }} := forcats::as_factor({{ var }})) |>
     count({{ var }}, .drop = FALSE) |>
     mutate(
-        prop = n / sum(n),
-        prop_pct = (n / sum(n)) |> scales::percent(accuracy = 0.1),
-        is_na = if_else({{ var }} %in% c("No answer"), "Yes", "No"),
-        n_valid = if_else(is_na == "Yes", NA_real_, n),
-        prop_valid = if_else(is_na == "Yes", NA_real_, n_valid / sum(n_valid, na.rm = TRUE)),
-        prop_valid_pct = if_else(is_na == "Yes", NA_real_, (n_valid / sum(n_valid, na.rm = TRUE))) |> scales::percent(accuracy = 0.1),
-        n_tot = sum(n),
-        n_tot_valid = sum(n_valid, na.rm = TRUE),
-        n_na = if_else(is_na == "Yes", n, NA_real_),
-        na_prop = if_else(is_na == "Yes", n_na / sum(n), NA_real_),
-        na_prop_pct = if_else(is_na == "Yes", n_na / sum(n), NA_real_) |> scales::percent(accuracy = 0.1))
+      prop = n / sum(n),
+      prop_pct = (n / sum(n)) |> scales::percent(accuracy = 0.1),
+      is_na = if_else({{ var }} %in% c("No answer"), "Yes", "No"),
+      n_valid = if_else(is_na == "Yes", NA_real_, n),
+      prop_valid = if_else(
+        is_na == "Yes",
+        NA_real_,
+        n_valid / sum(n_valid, na.rm = TRUE)
+      ),
+      prop_valid_pct = if_else(
+        is_na == "Yes",
+        NA_real_,
+        (n_valid / sum(n_valid, na.rm = TRUE))
+      ) |>
+        scales::percent(accuracy = 0.1),
+      n_tot = sum(n),
+      n_tot_valid = sum(n_valid, na.rm = TRUE),
+      n_na = if_else(is_na == "Yes", n, NA_real_),
+      na_prop = if_else(is_na == "Yes", n_na / sum(n), NA_real_),
+      na_prop_pct = if_else(is_na == "Yes", n_na / sum(n), NA_real_) |>
+        scales::percent(accuracy = 0.1),
+      color_palet = "steelblue"
+    )
+
+  max_n <- max(data$n_valid, na.rm = TRUE)
+  max_p <- max(data$prop_valid, na.rm = TRUE)
 
   # Use cli to showcase:
   cli::cli_h1("data: {lbs}")
@@ -63,13 +78,36 @@ prop_data <- function(df, var) {
 
   # Plot:
   cli::cli_h1("Plot: {lbs}")
-  p <- data |> 
-    ggplot(aes(x = prop, y = {{ var }})) + 
-    geom_col()
+  p <- data |>
+    ggplot(aes(x = prop_valid, y = {{ var }}, fill = color_palet)) +
+    geom_col() +
+    geom_text(
+      aes(label = scales::percent(prop_valid, accuracy = 1)),
+      size = 4,
+      vjust = 0.5,
+      hjust = -0.1
+    ) +
+    scale_x_continuous(
+      breaks = scales::breaks_pretty(),
+      labels = scales::label_percent(),
+      expand = expansion(mult = c(0, 0.15)),
+      limits = c(0, NA)
+    ) +
+    scale_y_discrete(
+      expand = expansion(mult = c(0.1, 0.1))
+    ) +
+    scale_fill_identity() +
+    labs(y = lbs, x = "", ) +
+    theme_classic(base_family = "aptos", base_size = 11)
   print(p)
 
   # return data quietly:
-  invisible(list(data = data, label = lbs, plot = p))
+  invisible(list(
+    data = data, 
+    label = lbs, 
+    plot = p, 
+    max_n = max_n)
+    )
 }
 t <- gss |> prop_data(marital)
 ```

@@ -1,0 +1,233 @@
+---
+title: "Logicals Using Tidyverse and Polars"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Intro:
+
+Logicals, i.e., *Logical vectors*, are powerfuls ways to transform, filter or subset our data. Here we derive the basics using tricks from the `tidyverse`, as per `R for data science`, and showcase the equivalents using `polars` in python.
+
+```{r}
+library(tidyverse)
+dat <- starwars
+# readr::write_csv(dat, "Data/R4DS/starwars.csv")
+
+```
+
+```{python}
+import polars as pl
+import pandas as pd
+import polars.selectors as cs
+
+dat_pl = pl.read_csv("Data/R4DS/starwars.csv")
+```
+
+### Comparison:
+
+- Some simple things from the ground up: how does `dplyr::filter()` and `polars.filter()` work under the hood?
+
+- Imagine we want to filter out specific rows in the `starwars` data set, e.g., characters with blue eyes:
+
+```{r}
+dat |> 
+    filter(eye_color == "blue") |> 
+    select(name, eye_color)
+```
+
+```{python}
+dat_pl.filter(
+    pl.col("eye_color") == "blue"
+    ).select(
+    pl.col("name"), pl.col("eye_color")
+    )
+```
+
+- Alright, easy! But what is actually happening here? Under the hood, both R and python use a logical vector, and it filters (selects) everywehere this is `TRUE` (in R) and `True` (in python):
+
+```{r}
+dat |> 
+    mutate(blue_eye_color = eye_color == "blue") |> 
+    select(name, eye_color, blue_eye_color) |> 
+    filter(blue_eye_color) |> 
+    select(!blue_eye_color)
+```
+
+```{python}
+(
+    dat_pl
+    .with_columns(blue_eye_color = pl.col("eye_color") == "blue")
+    .select("name", "eye_color", "blue_eye_color")
+    .filter(pl.col("blue_eye_color"))
+    .drop("blue_eye_color")
+)
+```
+
+### `base::is.na()`
+
+- One important thing to note is that in R and python, `NA` or `Na` or `Null` are missing values. Usally a filtering function drops missing values:
+
+```{r}
+dat |> select(mass)
+
+# Show NA's
+dat |> filter(mass == NA)
+dat |> filter(is.na(mass))
+
+```
+
+- Note that we cant use `== NA`. `NA` is a missing value, it cant be equal to anything because we don't know the value: As per R4DS:
+```{r}
+age_person_1 <- NA
+age_person_2 <- NA
+
+age_person_1 == age_person_2
+``` 
+
+- This becomes `NA` because we don't know the values!
+
+### `polars.is_null()`
+
+- In `polars` we use `is_null()`
+
+```{python}
+(
+    dat_pl
+    .filter(pl.col("mass").is_null())
+)
+```
+
+- What?! Why 0 rows?! Looking at the data we obviously have `NA` in our data!
+
+```{python}
+(
+    dat_pl
+    .filter(pl.col("mass") == "NA")
+)
+```
+
+- Okey, so this actually stems from HOW we read in the `.csv` file in the first place! Check this
+
+```{python}
+dat_pl = pl.read_csv("Data/R4DS/starwars.csv", null_values = "NA")
+
+(
+    dat_pl
+    .filter(pl.col("mass").is_null())
+)
+```
+
+- Another difference between R and Pythons behaviour is that in R, `NA's` usually go to the bottom of a data frame when we sort it:
+
+```{r}
+dat |> 
+    filter(eye_color == "blue") |> 
+    arrange(desc(mass))
+
+# We can override this using is.na
+dat |> 
+    filter(eye_color == "blue") |> 
+    arrange(desc(is.na(mass)), desc(mass))
+```
+
+- In python `null` is a the top straight away:
+
+```{python}
+(
+    dat_pl
+    .filter(pl.col("eye_color") == "blue")
+    .sort(pl.col("mass"), descending = True)
+)
+
+# Overrid to match R's default:
+(
+    dat_pl
+    .filter(pl.col("eye_color") == "blue")
+    .sort(pl.col("mass").is_null(), pl.col("mass"), descending = [False, True])
+)
+```
+
+- Also, the `%in%` operator in R and the `.is_in()` operator in polars are special:
+
+```{r}
+dat |> filter(homeworld %in% c("Tatooine", "Alderaan"))
+```
+
+```{python}
+(
+    dat_pl
+    .filter(pl.col("homeworld").is_in(["Tatooine", "Alderaan"]))
+)
+```
+
+- What the `%in%` and `.is_in()` operators does is that it basically checks `col == condition_1 | col == condition_2`.
+
+### Logical summaries: `base::any()` & `base::all()`
+
+- In R, `base::any()` and `base::all()` returns `TRUE` or `FALSE` given the condition supplied
+
+```{r}
+dat |> 
+    summarise(
+        any_blue_eyes = any(eye_color == "blue"),
+        all_blue_eyes = all(eye_color == "blue"),
+        .by = homeworld
+    )
+```
+
+- In Python:
+
+```{python}
+(
+    dat_pl.group_by("homeworld", maintain_order = True).agg(
+        any_blue_eyes = (pl.col("eye_color") == "blue").any(ignore_nulls = False),
+        all_blue_eyes = (pl.col("eye_color") == "blue").all(ignore_nulls = False)
+    )
+)
+```
+
+### Numerical summaries of logicals:
+
+- As per R4DS, using logicals on numeric vectors implies that `TRUE` becomes `1` and `FALSE` becomes `0`. We can use this to get counts and proportions of `TRUES`:
+
+```{r}
+dat |> 
+    mutate(
+        height_m = height / 100,
+        bmi = (mass / height_m^2),
+        class = bmi >= 30
+    ) |> 
+    select(name, height, height_m, mass, bmi, class) |> 
+    summarise(
+        prop = mean(class, na.rm = TRUE),
+        count = sum(class, na.rm = TRUE)
+    )
+
+dat |> 
+    mutate(
+        height_m = height / 100,
+        bmi = (mass / height_m^2)
+    ) |> 
+    summarise(
+        prop = mean(bmi >= 30, na.rm = TRUE),
+        count = sum(bmi >= 30, na.rm = TRUE)
+    )
+```
+
