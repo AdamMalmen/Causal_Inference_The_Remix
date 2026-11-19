@@ -1,0 +1,91 @@
+---
+title: "Combining purrr and rlang"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+This quarto tries to explain how to utilize `rlang` within `purrr`. There are some things we have to be aware about when we what to iterate using `purrr`. Building functions that use `tidyverse` functions make use of `{{}}` (curly-curly / embrace operator) and `.data[[]]` pronoun. In order to iterate over columns we need some type of strategy to be able to do this, and that strategy comes from having some knowledge about the `rlang` package.
+
+```{r}
+packs <- c("tidyverse", "rlang")
+pacman::p_load(char = packs)
+```
+
+As an example:
+
+```{r}
+# Use the gss data:
+dat <- forcats::gss_cat
+
+# Set up a list of columns:
+cols <- dat |> select(marital, relig, partyid, rincome) |> names() |> rlang::syms() |> set_names()
+
+# Generate a function:
+count_plot_helper <- function(df, var) {
+    
+    # Label and color palet:
+    lbs <- rlang::as_label(enquo(var)) |> str_to_title() |> str_replace_all("_", " ")
+    c_pal <- "steelblue"
+
+    # Plot data:
+    plot_data <- df |> 
+        count({{ var }}, .drop = FALSE) |> 
+        mutate(prop = n / sum(n))
+
+    cli::cli_h1("Data: {.field {lbs}}")
+    print(plot_data)
+
+    # Plot
+    p <- plot_data |> 
+        ggplot(aes(x = prop, y = {{ var }}, fill = c_pal)) +
+        geom_col() + 
+
+        scale_fill_identity() +
+        scale_x_continuous(labels = scales::percent) +
+        
+        labs(y = lbs) + 
+
+        theme_classic()
+
+    cli::cli_h1("Plot: {.field {lbs}}")
+    print(p)
+
+    cli::cli_rule(left = "End {.field {lbs}}")
+
+    # List return
+    invisible(list(data = plot_data, plot = p, label = lbs))
+}
+
+# One variable first:
+count_plot_helper(dat, marital)
+
+# Then map:
+res <- map(cols, \(v) {
+    dat |> count_plot_helper(!!v)
+}, .progress = TRUE)
+?cli::ansi_align
+```
+
+- Is this actually a good way to do this? Well, not in all cases! This could be thought of as a `god function` - one function that does all! We could instead split it up into several:
+
+1. first the `plot_data` function
+2. then the actually `plot_function`.
+
+- Note the key to sucess: i) first we use `names() |> rlang::syms() |> set_names()` to get our list object containing the cols we want to iterate over; ii) `!!` - the `bang-bang` operator inside our `map` call.
