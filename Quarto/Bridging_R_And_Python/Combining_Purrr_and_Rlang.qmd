@@ -80,7 +80,7 @@ count_plot_helper(dat, marital)
 res <- map(cols, \(v) {
     dat |> count_plot_helper(!!v)
 }, .progress = TRUE)
-?cli::ansi_align
+
 ```
 
 - Is this actually a good way to do this? Well, not in all cases! This could be thought of as a `god function` - one function that does all! We could instead split it up into several:
@@ -89,3 +89,78 @@ res <- map(cols, \(v) {
 2. then the actually `plot_function`.
 
 - Note the key to sucess: i) first we use `names() |> rlang::syms() |> set_names()` to get our list object containing the cols we want to iterate over; ii) `!!` - the `bang-bang` operator inside our `map` call.
+
+- We should also note the difference between a `purrr::map()` and a `purrr::walk()` call: `map()` can be combined with `<-` to assign an object with actual contents. `walk()` on the other hand is used for side effects, it delivers but throws away once delivered. To see this difference:
+
+```{r}
+# Use the gss data:
+dat <- forcats::gss_cat
+
+# Set up a list of columns:
+cols <- dat |> select(marital, relig, partyid, rincome) |> names() |> rlang::syms() |> set_names()
+
+# Generate a function:
+count_prop_helper <- function(df, var) {
+    
+    # Label and color palet:
+    lbs <- rlang::as_label(enquo(var)) |> str_to_title() |> str_replace_all("_", " ")
+    c_pal <- "steelblue"
+
+    # Plot data:
+    plot_data <- df |> 
+        count({{ var }}, .drop = FALSE) |> 
+        mutate(prop = n / sum(n))
+
+    cli::cli_h1("Data: {.field {lbs}}")
+    print(plot_data)
+}
+
+# quick check using walk:
+iwalk(cols, \(v, v_name) {
+    dat |> count_prop_helper(!!v)
+})
+
+# Now assign:
+map_test <- map(cols, \(v) {
+    dat |> count_prop_helper(!!v)
+})
+
+walk_test <- walk(cols, \(v) {
+    dat |> count_prop_helper(!!v)
+})
+
+# Show both objects:
+map_test
+walk_test
+
+```
+
+- That shown, we are good to go using `purrr::walk()` if we are looking for so called "side effects", i.e., saving a ggplot using `ggsave()`, writing a file using e.g., `readxl::writexl()`.
+
+- We could even use `purrr` for loading libraries!
+
+```{r}
+# 1. restart R
+
+libs <- c("tidyverse", "rlang", "cli", "fixest")
+libs
+
+# 2. load: purrr
+library(purrr)
+
+# Using map: keeps the output
+libs <- map(libs, \(l) library(l, character.only = TRUE))
+libs
+
+# 3. restart R
+
+libs <- c("tidyverse", "rlang", "cli", "fixest")
+libs
+
+# 4. load: purrr
+
+library(purrr)
+
+# Using walk: throws the output away
+walk(libs, \(l) library(l, character.only = TRUE))
+```

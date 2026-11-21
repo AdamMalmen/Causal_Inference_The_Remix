@@ -53,11 +53,11 @@ dat |>
 ```
 
 ```{python}
-dat_pl.filter(
-    pl.col("eye_color") == "blue"
-    ).select(
-    pl.col("name"), pl.col("eye_color")
-    )
+(
+    dat_pl
+    .filter(pl.col("eye_color") == "blue")
+    .select(pl.col("name"), pl.col("eye_color"))
+)
 ```
 
 - Alright, easy! But what is actually happening here? Under the hood, both R and python use a logical vector, and it filters (selects) everywehere this is `TRUE` (in R) and `True` (in python):
@@ -231,3 +231,136 @@ dat |>
     )
 ```
 
+- Using python:
+
+```{python}
+(
+    dat_pl
+    .with_columns(height_m = pl.col("height") / 100)
+    .with_columns(bmi = (pl.col("mass") / pl.col("height_m")**2))
+    .with_columns(pl.col("bmi").ge(30).alias("class"))
+    .select("name", "height", "height_m", "mass", "bmi", "class")
+    # Note that we can't use .agg on a polars df, we need to use select:
+    .select(
+        pl.col("class").mean().alias("mean"),
+        pl.col("class").sum().alias("count")
+    )
+)
+
+(
+    dat_pl
+    .with_columns(height_m = pl.col("height") / 100)
+    .with_columns((pl.col("mass") / pl.col("height_m") ** 2).alias("bmi"))
+    .select(
+        prop = (pl.col("bmi").ge(30)).mean(),
+        count = pl.col("bmi").ge(30).sum()
+    )
+)
+```
+
+- Let's mix it up and group by `gender`:
+
+```{r}
+# First way:
+dat |> 
+    mutate(
+        height_m = height / 100,
+        bmi = mass / height_m^2
+    ) |>
+    summarise(
+        prop = mean(bmi >= 30, na.rm = TRUE),
+        count = sum(bmi >= 30, na.rm = TRUE),
+        .by = gender
+    )
+
+# Second way:
+dat |> 
+    mutate(
+        height_m = height / 100,
+        bmi = mass / height_m^2
+    ) |> 
+    group_by(gender) |> 
+    summarise(
+        prop = mean(bmi >= 30, na.rm = TRUE),
+        count = sum(bmi >= 30, na.rm = TRUE),
+        .groups = "drop"
+    )
+```
+
+- And in python:
+
+```{python}
+(
+    dat_pl
+    .with_columns(height_m = pl.col("height") / 100)
+    .with_columns((pl.col("mass") / pl.col("height_m") ** 2).alias("bmi"))
+    .group_by("gender")
+    .agg(
+        (pl.col("bmi").ge(30)).mean().alias("prop"),
+        (pl.col("bmi").ge(30)).sum().alias("count")
+    )
+)
+
+```
+
+- Note one difference: in `polars` we don't need to ungroup the data like we do when we use `dplyr`. Or rather, in `dplyr` we don't NEED to ungroup the data - however it is good practice do to so! Using `summarise` we can use the `.by = ` arguement, which works like `.group_by()` in polars, i.e., once the summary is done, groups are dropped. If we use `group_by()` before a `summarise()` function, we should also include a `.groups = "drop"` argument or pipe in a `ungroup()` function after the summary: `summarise(...) |> ungroup()`
+
+### Logical subsetting:
+
+- As per R4DS we can also use logicals to filter, or subset, the data before summarising (aggregating) data. In R we use the `subset` operator, `[`, which is quite reminicent of how `pandas` subsets data.
+
+```{r}
+# First way: use group_by to keep up between languages
+dat |> 
+    filter(eye_color == "blue") |> 
+    group_by(gender) |> 
+    summarise(
+        mean_weight = mean(mass, na.rm = TRUE),
+        n = n(),
+        .groups = "drop"
+    )
+
+# Second way: Note however that that it's one the mean that gets the subsetted data
+dat |> 
+    group_by(gender) |> 
+    summarise(
+        mean_weight = mean(mass[eye_color == "blue"], na.rm = TRUE),
+        n = sum(eye_color == "blue", na.rm = TRUE), # Can't use n = n() here beacuse it can't be subsetted!
+        n_tot = n(),
+        .groups = "drop"
+    )
+```
+
+- Using `polars`:
+
+```{python}
+# First way:
+(
+    dat_pl.filter(pl.col("eye_color") == "blue")
+    .group_by("gender")
+    .agg(
+        mean_weight = pl.col("mass").mean(), 
+        n = pl.len()
+    )
+)
+
+(
+    dat_pl
+    .group_by("gender")
+    .agg(
+        mean_weight = pl.col("mass").filter(pl.col("eye_color") == "blue").mean(),
+        n = (pl.col("eye_color") == "blue").sum(),
+        n_tot = pl.len()
+    )
+)
+```
+
+### Logical transformation:
+
+- Now probably the most important part: How to create logicals that we can use!
+
+-
+
+```{r}
+
+```
