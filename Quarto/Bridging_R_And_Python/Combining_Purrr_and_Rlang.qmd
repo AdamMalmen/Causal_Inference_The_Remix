@@ -43,11 +43,15 @@ count_plot_helper <- function(df, var) {
     # Label and color palet:
     lbs <- rlang::as_label(enquo(var)) |> str_to_title() |> str_replace_all("_", " ")
     c_pal <- "steelblue"
+    na_vec <- c("No answer", "Don't know", "Not applicable", "Refused")
 
     # Plot data:
     plot_data <- df |> 
         count({{ var }}, .drop = FALSE) |> 
-        mutate(prop = n / sum(n))
+        mutate(
+            prop = n / sum(n),
+            is_na = if_else({{ var }} %in% na_vec, TRUE, FALSE)
+            )
 
     cli::cli_h1("Data: {.field {lbs}}")
     print(plot_data)
@@ -58,9 +62,17 @@ count_plot_helper <- function(df, var) {
         geom_col() + 
 
         scale_fill_identity() +
-        scale_x_continuous(labels = scales::percent) +
-        
-        labs(y = lbs) + 
+        scale_x_continuous(
+            labels = scales::percent,
+            expand = c(0, expansion(mult = 0, add = 0.1)),
+            breaks = scales::breaks_pretty()
+        ) +
+
+        labs(
+            title = lbs,
+            x = "",
+            y = ""
+        ) + 
 
         theme_classic()
 
@@ -163,4 +175,54 @@ library(purrr)
 
 # Using walk: throws the output away
 walk(libs, \(l) library(l, character.only = TRUE))
+search()
+```
+
+- **NOTE:** This is acturally not a smart way to load packages! It's quite unnececary to do it this way. It way better if we have a vector of packages that we want to load to instead use `pacman::p_load(char = libs)` in order to do this!
+
+- **NOTE:** Also notice that the list of packages grows for each iteration. This is beacuse `library()` invisibly returns a string vector of all the packages that are attached via the search path. We can showcase this:
+
+```{r}
+# Restart R then use search(), which gives a list of attached packages and R objects, usually data frames
+search()
+(.packages())
+```
+
+- we have `base` packages: `stats`, `graphics`, `grDevices`, `utils`, `datasets` and `methods` when we start R. `.GlobalEnv` is what we have in our global environment, i.e., the objects in our environment. But if we attache, i.e., load packages, this list will fill up:
+
+```{r}
+library(dplyr)
+search()
+(.packages())
+library(tidyr)
+search()
+(.packages())
+```
+
+- Therefore each iteration using `purrr::map()` grows the list! But hey, use `pacman::p_load(char = libs)` or (not perfered by me) `walk(libs, \(l) library(l, character.only = TRUE))`.
+
+- We can also read data using `purrr`, actually one of the main things!
+
+```{r}
+# Don't forget our packages since we restarted R!
+libs <- c("tidyverse", "rlang", "cli")
+pacman::p_load(char = libs) # Easier right!
+
+data <- list(
+    gss  = forcats::gss_cat,
+    sw   = dplyr::starwars,
+    iris = datasets::iris,
+    fl   = nycflights13::flights
+)
+
+# 1. use walk
+iwalk(data, \(df, name) assign(name, df, envir = .GlobalEnv))
+rm(gss, iris, sw, fl)
+
+# 2. use list2env()
+list2env(data, envir = .GlobalEnv)
+```
+
+```{r}
+
 ```

@@ -359,8 +359,73 @@ dat |>
 
 - Now probably the most important part: How to create logicals that we can use!
 
--
+- In R, we typically use `if_else()` and `case_when()` for creating logicals. In python, we typically use `pl.when().then().otherwise()` chain method
 
 ```{r}
+# 1. if_else()
+sw |> 
+    mutate(
+        height_m = height / 100,
+        bmi = mass / height_m^2,
+        obesitas = if_else(bmi >= 30, "Yes", "No"),
+        .keep = "used"
+    )
 
+# 2. nested if_else()
+sw |> 
+    mutate(
+        height_m = height / 100,
+        bmi = mass / height_m^2,
+        obesitas = if_else(
+            bmi >= 30 & bmi < 35, "Yes, class 1", if_else(
+                bmi >= 35 & bmi < 40, "Yes, class 2", if_else(
+                    bmi >= 40, "Yes, class 3", "No"
+                )
+            ) 
+        ), , .keep = "used"
+    ) |> print(n = Inf)
 ```
+
+- This works fine. But it's far from perfect. First thing to note is that a nested `if_else()` should be used as a last resort! A better solution is to utilze `case_when()`:
+
+```{r}
+sw |> 
+    mutate(
+        height_m = height / 100,
+        bmi = mass / height_m^2,
+        obesitas = case_when(
+            bmi >= 30 & bmi < 35 ~ "Yes, class 1",
+            bmi >= 35 & bmi < 40 ~ "Yes, class 2",
+            bmi >= 40 ~ "Yes, class 3",
+            .default  = "No"
+        ), .keep = "used"
+    ) |> print(n = Inf)
+```
+
+- This is much easier to read, and much easier to write!
+
+- Turning to `Polars`:
+
+```{python}
+(
+    dat_pl
+    .with_columns((pl.col("height") / 100).alias("height_m"))
+    .with_columns((pl.col("mass") / pl.col("height_m")**2).alias("bmi"))
+    .with_columns(
+        obesitas = pl.when(pl.col("bmi") >= 30).then(pl.lit("Yes"))
+        .otherwise(pl.lit("No")))
+)
+
+(
+    dat_pl
+    .with_columns(height_m = (pl.col("height") / 100))
+    .with_columns(bmi = (pl.col("mass") / pl.col("height_m")**2))
+    .with_columns(
+        obesitas = pl.when((pl.col("bmi") >= 30) & (pl.col("bmi") < 35)).then(pl.lit("Yes, class 1"))
+        .when((pl.col("bmi") >= 35) & (pl.col("bmi") < 40)).then(pl.lit("Yes, class 2"))
+        .when(pl.col("bmi") >= 40).then(pl.lit("Yes, class 3"))
+        .otherwise(pl.lit("No"))
+    )
+)
+```
+
