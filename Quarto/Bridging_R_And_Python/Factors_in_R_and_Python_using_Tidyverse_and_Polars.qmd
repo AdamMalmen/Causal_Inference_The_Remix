@@ -1,0 +1,131 @@
+---
+title: "Factors in R and Python, using Tidyverse and Polars"
+author: "Adam Malmén"
+date: today
+date-format: "YYYY-MM-DD"
+lang: en
+engine: knitr
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    df-print: paged
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+- Factors are the back-bone of categorical data analysis. We will utilize two packages in R, `forcats` and `haven`, combinned with `labelled`. `forcats` is specifically designed for analysing `factors` or `categerical` columns. `haven` is a specific package that we can utilize when we import data from e.g., SPSS or Stata. `labelled` is perticularly useful when we need labels, variable labels and value labels on our factor variables and the value labels. 
+
+- We takle using Python in the main time as well, learning using `Claude`.
+
+```{r}
+libs <- c("tidyverse", "haven", "labelled", "rlang", "cli")
+pacman::p_load(char = libs)
+```
+
+- We will use the `gss_cat` data connected to the `forcats` package:
+
+```{r}
+data <- list(
+    gss = forcats::gss_cat
+)
+# list2env(data, envir = .GlobalEnv)
+# write_sav(gss, "Data/R4DS/gss.sav") # we export to sav in order to use haven
+```
+
+## Importation:
+
+One thing to start of with is that we need to be specific when we have categorical data. Check this out
+
+```{r}
+# From simple to advanced and idiotic :)
+
+# 1. simply import! :)
+gss_haven <- haven::read_sav("Data/R4DS/gss.sav")
+gss_csv <- read_csv("Data/R4DS/gss.csv")
+
+# 2. Put the data in a list and the functions in a list
+data <- list(
+    gss_haven = "Data/R4DS/gss.sav",
+    gss_csv   = "Data/R4DS/gss.csv"
+)
+
+read <- list(
+    "read_sav" = haven::read_sav,
+    "read_csv" = readr::read_csv
+)
+
+# Then map :)
+dat <- map2(data, read, \(data_list, reading_funcs) {
+    reading_funcs(data_list)
+})
+list2env(dat, envir = .GlobalEnv)
+
+# 3. More advanced list. Then pmap... :) This is stupid...
+specs <- list(
+    data   = c("Data/R4DS/gss.sav", "Data/R4DS/gss.csv"),
+    import = c(haven::read_sav, readr::read_csv),
+    name   = c("gss_haven", "gss_csv")
+)
+dat <- pmap(specs, \(data, import, name) import(data)) |> set_names(specs$name)
+list2env(dat, envir = .GlobalEnv)
+```
+
+Okey... so after all this fancy data importation... check the data!
+
+```{r}
+gss_haven
+gss_csv
+```
+
+Look at how different the frames look. The `csv` have lots of character columns, while the `haven`, or `.sav` file, has something called `haven_labelled` columns, which is both a numeric value and a value label which is attached to the specific value in the cell. 
+
+Let's check how this works:
+
+```{r}
+sub <- gss_csv |> 
+    select(marital) |> 
+    mutate(marital = fct(marital)) # factor levels by how they appear in the column
+levels(sub$marital)
+
+sub <- gss_haven |> 
+    select(marital) |> 
+    mutate(marital = as_factor(marital)) # Underlying numeric code keept and fixed
+levels(sub$marital)
+
+sub <- gss_haven |> 
+    select(marital) |> 
+    mutate(marital = as_factor(marital, levels = "both")) # Keep the numeric code, fixed and visible
+levels(sub$marital)
+
+sub |> count(marital) |> 
+    mutate(marital = str_remove_all(marital, "\\[[^\\]]*\\]")) |> 
+    ggplot(aes(x = n, y = marital)) + geom_col() + theme_classic()
+```
+
+```{r}
+sub <- gss_haven |>
+  select(marital) |>
+  mutate(
+    marital = {
+      labs <- attr(marital, "labels", exact = TRUE)   # etikett -> kod
+      old  <- labs[["No answer"]]
+      vals <- as.numeric(marital)
+      vals[vals == old] <- 999
+      labs[labs == old] <- 999
+      haven::labelled(vals, labels = labs, label = attr(marital, "label", exact = TRUE))
+    }
+  )
+
+attr(sub$marital, "labels")
+
+sub <- sub |> mutate(marital = as_factor(marital))
+levels(sub$marital)
+```
